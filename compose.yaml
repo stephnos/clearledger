@@ -1,0 +1,12 @@
+services:
+  ledger:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ledger-data:/app/data
+    environment:
+      CLEARLEDGER_DEMO: "1"
+    restart: unless-stopped
+volumes:
+  ledger-data:
