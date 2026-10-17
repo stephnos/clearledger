@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ClearLedger — a local double-entry transaction ledger demo.">
+  <title>ClearLedger · Treasury workspace</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="ClearLedger home"><span class="brand-mark">cl<span>↗</span></span>ClearLedger<span class="brand-dot">.</span></a>
+    <div class="workspace-label">TREASURY WORKSPACE</div>
+    <nav aria-label="Main navigation">
+      <a class="nav-link active" href="#overview"><span aria-hidden="true">▦</span> Overview</a>
+      <a class="nav-link" href="#activity"><span aria-hidden="true">⇄</span> Transfer activity</a>
+      <a class="nav-link" href="#controls"><span aria-hidden="true">◇</span> Ledger controls</a>
+      <a class="nav-link" href="/docs" target="_blank" rel="noopener"><span aria-hidden="true">↗</span> API explorer</a>
+    </nav>
+    <div class="sidebar-note"><span class="small-label">BUILT TO BE EXPLAINED</span><p>Every movement.<br>Both sides.<br>One source of truth.</p><span class="subtle">An independent engineering project.</span></div>
+    <div class="environment"><span class="status-dot"></span> Local demo <span>v1.0</span></div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar"><div>Treasury <span class="slash">/</span> <strong>Overview</strong></div><div class="topbar-right"><span class="demo-badge">SIMULATED FUNDS</span><span class="avatar" aria-label="Demo workspace">CL</span></div></header>
+    <main id="overview">
+      <div class="page-heading"><div><div class="eyebrow">YOUR MONEY, ACCOUNTED FOR</div><h1>Ledger overview<span>.</span></h1><p class="muted">A clear view of balances, transfers, and the entries behind them.</p></div><button class="button secondary" id="new-account">+ New account</button></div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+      <section class="stats" aria-label="Ledger summary">
+        <div class="stat stat-primary"><div class="stat-label">Total customer balances <select id="currency" aria-label="Summary currency"><option>GBP</option><option>USD</option><option>EUR</option></select></div><div class="stat-value" id="total-balance">—</div><div class="stat-foot"><span class="mini-dot"></span> Backed by posted ledger entries</div><div class="card-orbit" aria-hidden="true"></div></div>
+        <div class="stat"><div class="stat-label">Transfer volume <span class="stat-symbol">↗</span></div><div class="stat-value" id="volume">—</div><div class="stat-foot">All-time · selected currency</div></div>
+        <div class="stat"><div class="stat-label">Posted transfers <span class="stat-symbol">⇄</span></div><div class="stat-value" id="transfer-count">—</div><div class="stat-foot">All currencies · opening balances excluded</div></div>
+      </section>
+
+      <div class="main-grid">
+        <section class="accounts-section"><div class="section-heading"><h2>Your accounts <span id="account-count" class="count">0</span></h2><span class="small-label">LIVE BALANCES</span></div><div id="accounts" class="account-list"><p class="muted">Loading accounts…</p></div><div class="account-hint"><span aria-hidden="true">↗</span> Select an account to inspect its statement.</div></section>
+        <section class="transfer-panel" aria-labelledby="transfer-title"><div class="section-heading"><h2 id="transfer-title">Move money</h2><span class="pill">Internal transfer</span></div><p class="muted form-intro">One transfer. Two balanced entries.</p>
+          <form id="transfer-form">
+            <label for="source">From account</label><select id="source" required></select>
+            <div class="transfer-arrow" aria-hidden="true">↓</div>
+            <label for="destination">To account</label><select id="destination" required></select>
+            <div class="form-row"><div><label for="amount">Amount <span id="amount-currency">GBP</span></label><input id="amount" type="text" inputmode="decimal" placeholder="0.00" pattern="[0-9]+(\.[0-9]{1,2})?" required autocomplete="off"></div></div>
+            <label for="reference">Reference</label><input id="reference" maxlength="120" placeholder="e.g. Monthly reserve allocation" required>
+            <button class="button primary submit" id="submit-transfer" type="submit">Review & transfer <span aria-hidden="true">↗</span></button>
+            <p class="form-foot">Transfers are atomic. Retrying the same request never moves money twice.</p>
+          </form>
+          <button id="retry-pending" class="text-button" hidden>Retry pending request</button>
+          <button id="replay" class="text-button" hidden>Replay last request · test idempotency ↗</button>
+        </section>
+      </div>
+
+      <section class="activity-panel" id="activity"><div class="section-heading"><div><h2>Transfer activity</h2><p class="muted">The movement is simple. The record is complete.</p></div><button id="refresh" class="button secondary compact">↻ Refresh</button></div><div class="table-scroll"><table><thead><tr><th>Reference / journal</th><th>From → to</th><th>Amount</th><th>Status</th><th>Time</th><th><span class="sr-only">Details</span></th></tr></thead><tbody id="transfers"></tbody></table></div><div class="pagination"><span id="page-info" class="muted">Loading…</span><div><button id="previous" class="button secondary compact" disabled>← Previous</button><button id="next" class="button secondary compact" disabled>Next →</button></div></div></section>
+
+      <section id="controls" class="controls"><div class="section-heading"><h2>Confidence in every entry</h2><span id="integrity" class="pill">Checking ledger…</span></div><div class="control-grid"><div><span class="control-number">01 / ATOMICITY</span><h3>All or nothing.</h3><p>Balance checks and both postings share a single database transaction.</p></div><div><span class="control-number">02 / IDEMPOTENCY</span><h3>Safe to retry.</h3><p>A request key identifies one transfer. Reuse with different details is rejected.</p></div><div><span class="control-number">03 / AUDITABILITY</span><h3>A durable record.</h3><p>Posted entries cannot be edited. Balances are derived from the ledger.</p></div></div></section>
+      <footer><span>ClearLedger · Independent portfolio project</span><span>Simulated money. Local use only. No affiliation with JPMorgan Chase.</span></footer>
+    </main>
+  </div>
+
+  <dialog id="details"><div class="dialog-top"><h2 id="detail-title">Journal details</h2><button class="icon-button" data-close="details" aria-label="Close details">×</button></div><div id="detail-body"></div></dialog>
+  <dialog id="account-dialog"><div class="dialog-top"><h2>Create an account</h2><button class="icon-button" data-close="account-dialog" aria-label="Close account form">×</button></div><p class="muted">New accounts start at zero. Transfer demo funds from another account to fund them.</p><form id="account-form"><label for="account-name">Account name</label><input id="account-name" maxlength="80" required placeholder="e.g. Operations reserve"><label for="account-currency">Currency</label><select id="account-currency"><option>GBP</option><option>USD</option><option>EUR</option></select><p id="account-error" class="error" role="alert"></p><button class="button primary submit">Create account ↗</button></form></dialog>
+  <dialog id="confirm-dialog"><div class="dialog-top"><h2>Confirm transfer</h2><button class="icon-button" data-close="confirm-dialog" aria-label="Cancel transfer">×</button></div><div id="confirm-body"></div><div class="confirm-actions"><button class="button secondary" data-close="confirm-dialog">Cancel</button><button class="button primary" id="confirm-transfer">Confirm transfer ↗</button></div></dialog>
+</body>
+</html>
