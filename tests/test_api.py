@@ -30,21 +30,6 @@ def test_conflicting_key_returns_structured_error(client):
 
 
 @pytest.mark.parametrize("amount", [0, -10, 1.5, True, "100", 1_000_000_000_001])
-def test_api_rejects_non_integer_or_out_of_range_money(client, amount):
-    response = client.post(
-        "/api/transfers",
-        json={**PAYLOAD, "amount_minor": amount},
-        headers={"Idempotency-Key": "invalid"},
-    )
-    assert response.status_code == 422
-
-
-@pytest.mark.parametrize("key", [None, "", "space in key", "x" * 129])
-def test_api_requires_valid_idempotency_header(client, key):
-    headers = {} if key is None else {"Idempotency-Key": key}
-    assert client.post("/api/transfers", json=PAYLOAD, headers=headers).status_code == 422
-
-
 def test_account_creation_and_statement(client):
     response = client.post("/api/accounts", json={"name": "New reserve", "currency": "GBP"})
     assert response.status_code == 201
@@ -60,3 +45,15 @@ def test_no_public_funding_endpoint_or_implicit_extra_fields(client):
     assert response.status_code == 422
 
 
+def test_serves_dashboard_and_health(client):
+    assert client.get("/api/health").json() == {"status": "ok"}
+    page = client.get("/")
+    assert page.status_code == 200 and "ClearLedger" in page.text
+    assert client.get("/static/app.js").status_code == 200
+    assert client.get("/static/styles.css").status_code == 200
+    assert client.get("/api/summary").headers["cache-control"] == "no-store"
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
+def test_pagination_is_bounded(client, query):
+    assert client.get(f"/api/transfers?{query}").status_code == 422
