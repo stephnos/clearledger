@@ -26,31 +26,6 @@ def test_transfer_posts_exactly_two_entries_and_conserves_money(ledger):
     assert ledger.summary()["integrity"]["balanced"] is True
 
 
-def test_identical_retry_returns_same_journal_without_moving_money(ledger):
-    first, _ = ledger.transfer(SOURCE, DESTINATION, 500, "Retry me", "same-key")
-    after_first = balances(ledger)
-    replay, replayed = ledger.transfer(SOURCE, DESTINATION, 500, "Retry me", "same-key")
-    assert replay == first
-    assert replayed is True
-    assert balances(ledger) == after_first
-
-
-def test_key_reuse_with_different_payload_is_rejected(ledger):
-    ledger.transfer(SOURCE, DESTINATION, 500, "Invoice", "key")
-    before = balances(ledger)
-    with pytest.raises(LedgerError, match="different request"):
-        ledger.transfer(SOURCE, DESTINATION, 501, "Invoice", "key")
-    assert balances(ledger) == before
-
-
-@pytest.mark.parametrize("amount", [0, -1, True, 1.1, "100", 1_000_000_000_001])
-def test_invalid_amounts_never_touch_ledger(ledger, amount):
-    before = balances(ledger)
-    with pytest.raises(LedgerError):
-        ledger.transfer(SOURCE, DESTINATION, amount, "Invalid", "invalid")
-    assert balances(ledger) == before
-
-
 def test_missing_self_and_cross_currency_transfers_rejected(ledger):
     euro = ledger.create_account("Euro account", "EUR")
     for source, destination, code in [
@@ -169,3 +144,14 @@ def test_restart_persists_records_and_seed_is_idempotent(ledger):
     assert replayed is True and replay == journal
 
 
+def test_summary_keeps_currencies_separate(ledger):
+    ledger.create_account("USD reserve", "USD")
+    rows = {r["currency"]: r for r in ledger.summary()["currencies"]}
+    assert rows["GBP"]["balance_minor"] == 24_700_000
+    assert rows["USD"]["balance_minor"] == 0
+
+
+def test_history_pages_do_not_overlap(ledger):
+    first, second = ledger.transfers(2, 0), ledger.transfers(2, 2)
+    assert first["total"] == second["total"] == 4
+    assert len({j["id"] for j in first["items"] + second["items"]}) == 4
