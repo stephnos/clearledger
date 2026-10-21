@@ -14,3 +14,21 @@ function savePending(value) {
   $('retry-pending').hidden = !pending;
 }
 function notify(message, error = false) { $('notice').textContent = message; $('notice').className = `notice${error ? ' error' : ''}`; $('notice').hidden = false; }
+async function api(path, options = {}) {
+  const response = await fetch(path, {...options, headers:{'Content-Type':'application/json', ...options.headers}});
+  const body = await response.json();
+  if(!response.ok) {
+    const message = body.error?.message || (Array.isArray(body.detail) ? body.detail.map(e => e.msg).join('; ') : 'Request failed. Please try again.');
+    const error = new Error(message); error.status = response.status; throw error;
+  }
+  return {body, replayed:response.headers.get('Idempotent-Replayed') === 'true'};
+}
+function renderSummary() {
+  if(!summary) return;
+  const item = summary.currencies.find(c => c.currency === $('currency').value);
+  $('total-balance').textContent = money(item?.balance_minor || 0, $('currency').value);
+  $('volume').textContent = money(item?.volume_minor || 0, $('currency').value);
+  $('transfer-count').textContent = summary.transfer_count;
+  $('integrity').textContent = summary.integrity.balanced ? '● Ledger balanced' : 'Ledger needs attention';
+  $('integrity').className = `pill${summary.integrity.balanced ? '' : ' integrity-error'}`;
+}
