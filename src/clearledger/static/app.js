@@ -32,3 +32,29 @@ function renderSummary() {
   $('integrity').textContent = summary.integrity.balanced ? '● Ledger balanced' : 'Ledger needs attention';
   $('integrity').className = `pill${summary.integrity.balanced ? '' : ' integrity-error'}`;
 }
+function renderAccounts() {
+  $('account-count').textContent = accounts.length;
+  $('accounts').replaceChildren();
+  if(!accounts.length) $('accounts').append(element('p','muted','No accounts yet. Create one to get started.'));
+  accounts.forEach((account, i) => {
+    const card = element('button','account-card'); card.type = 'button'; card.setAttribute('aria-label',`View ${account.name} statement`);
+    const top = element('div','account-card-top');
+    const name = element('div','account-name'); name.append(element('span','account-icon',['▦','◇','⇄'][i%3]),element('span','',account.name));
+    top.append(name,element('span','account-code',account.id.slice(-8).toUpperCase()));
+    const bottom = element('div','account-card-bottom'); bottom.append(element('span','account-amount',money(account.balance_minor,account.currency)),element('span','account-currency',`${account.currency} · Available ↗`));
+    card.append(top,bottom); card.onclick = () => showStatement(account); $('accounts').append(card);
+  });
+  const current = $('source').value;
+  $('source').replaceChildren(...accounts.map(a => new Option(`${a.name} · ${money(a.balance_minor,a.currency)}`,a.id)));
+  if(accounts.some(a => a.id === current)) $('source').value = current;
+  renderDestinations();
+}
+function renderDestinations() {
+  const current = $('destination').value;
+  const source = accounts.find(a => a.id === $('source').value);
+  $('amount-currency').textContent = source?.currency || 'GBP';
+  const choices = accounts.filter(a => a.id !== source?.id && a.currency === source?.currency);
+  $('destination').replaceChildren(...choices.map(a => new Option(a.name,a.id)));
+  if(choices.some(a => a.id === current)) $('destination').value = current;
+  $('submit-transfer').disabled = busy || !choices.length;
+}
