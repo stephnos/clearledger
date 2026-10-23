@@ -58,3 +58,26 @@ function renderDestinations() {
   if(choices.some(a => a.id === current)) $('destination').value = current;
   $('submit-transfer').disabled = busy || !choices.length;
 }
+function showJournal(journal) {
+  $('detail-title').textContent = 'Journal details'; $('detail-body').replaceChildren();
+  const meta = element('p','detail-meta',`${journal.reference} · ${time(journal.created_at)}\n${journal.id}`);
+  meta.style.whiteSpace = 'pre-line'; $('detail-body').append(meta);
+  journal.postings.forEach(p => {
+    const row = element('div','detail-posting'); const name = element('div','',p.account_name);
+    name.append(element('small','',p.amount_minor < 0 ? 'Debit · funds out' : 'Credit · funds in'));
+    row.append(name,element('strong',p.amount_minor < 0 ? 'negative' : 'positive',money(p.amount_minor,journal.currency)));
+    $('detail-body').append(row);
+  });
+  const sum = journal.postings.reduce((s,p) => s + p.amount_minor,0);
+  $('detail-body').append(element('p','detail-meta',`Net movement: ${money(sum,journal.currency)} · ${journal.status} · Immutable journal`));
+  $('details').showModal();
+}
+async function showStatement(account) {
+  try {
+    const {body} = await api(`/api/accounts/${encodeURIComponent(account.id)}/entries?limit=100`);
+    $('detail-title').textContent = account.name; $('detail-body').replaceChildren(element('div','detail-amount',money(body.balance_minor,account.currency)),element('p','detail-meta','Latest 100 entries, including the demo opening balance.'));
+    if(!body.items.length) $('detail-body').append(element('p','muted','No entries yet.'));
+    body.items.forEach(entry => { const row = element('div','detail-posting'); const name = element('div','',entry.reference); name.append(element('small','',time(entry.created_at))); row.append(name,element('strong',entry.amount_minor < 0 ? 'negative' : 'positive',money(entry.amount_minor,account.currency))); $('detail-body').append(row); });
+    $('details').showModal();
+  } catch(error) { notify(error.message,true); }
+}
