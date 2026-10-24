@@ -81,3 +81,21 @@ async function showStatement(account) {
     $('details').showModal();
   } catch(error) { notify(error.message,true); }
 }
+function renderTransfers(data) {
+  $('transfers').replaceChildren();
+  if(!data.items.length) { const row = element('tr'); const cell = element('td','empty','No transfers yet. Your first transfer will appear here.'); cell.colSpan = 6; row.append(cell); $('transfers').append(row); }
+  data.items.forEach(journal => {
+    const row = element('tr'), reference = element('td');
+    reference.append(element('div','cell-main',journal.reference),element('div','cell-sub',journal.id.slice(0,8)));
+    const path = element('td'); path.append(element('div','cell-main',journal.postings[0].account_name),element('div','muted',`→ ${journal.postings[1].account_name}`));
+    const status = element('td'); status.append(element('span','posted','● Posted'));
+    const action = element('td'), button = element('button','row-details','↗'); button.setAttribute('aria-label',`View journal ${journal.reference}`); button.onclick = () => showJournal(journal); action.append(button);
+    row.append(reference,path,element('td','amount-cell',money(journal.postings[1].amount_minor,journal.currency)),status,element('td','',time(journal.created_at)),action); $('transfers').append(row);
+  });
+  $('page-info').textContent = data.total ? `${offset+1}–${Math.min(offset+pageSize,data.total)} of ${data.total} transfers` : '0 transfers';
+  $('previous').disabled = offset === 0; $('next').disabled = offset + pageSize >= data.total;
+}
+async function refresh() {
+  const [a,s,t] = await Promise.all([api('/api/accounts'),api('/api/summary'),api(`/api/transfers?limit=${pageSize}&offset=${offset}`)]);
+  accounts = a.body.items; summary = s.body; renderAccounts(); renderSummary(); renderTransfers(t.body);
+}
